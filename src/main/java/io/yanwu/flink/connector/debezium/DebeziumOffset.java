@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -12,7 +13,7 @@ import java.util.Objects;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DebeziumOffset {
+public class DebeziumOffset implements Serializable {
     private byte[] key;
 
     private byte[] value;
@@ -30,8 +31,8 @@ public class DebeziumOffset {
     @Override
     public String toString() {
         return "DebeziumOffset{" +
-                "key=" + new String(key) +
-                ", value=" + new String(value) +
+                "key=" + (Objects.isNull(key) ? "" : new String(key)) +
+                ", value=" + (Objects.isNull(value) ? "" : new String(value)) +
                 '}';
     }
 }

@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import java.util.Properties;
 
-public class DebeziumSourceTest {
+public class DebeziumSourceITCase {
 
     @Test
     public void test() throws Exception {
@@ -20,12 +20,13 @@ public class DebeziumSourceTest {
         stream.filter(o -> o.getSource().get("table").equals("products")).print();
 
         StreamGraph streamGraph = env.getStreamGraph();
-        streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath("file:///D:/LocalWork/temp/savepoint-58d4d5-0bd3e6a004f8"));
+//        streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath("file:///D:\\LocalWork\\temp\\savepoint-740afd-cd11dfc55900"));
 //        env.execute(streamGraph);
         JobClient jobClient = env.executeAsync(streamGraph);
         System.out.println(jobClient.getJobID());
         Thread.sleep(30000);
-        jobClient.triggerSavepoint("file:///D:\\LocalWork\\temp");
+//        jobClient.triggerSavepoint("file:///D:\\LocalWork\\temp");
+//        Thread.sleep(1000);
     }
 
     private StreamExecutionEnvironment getEnvironment() {
@@ -51,8 +52,12 @@ public class DebeziumSourceTest {
         props.setProperty("database.password", "123456");
 
         props.setProperty("database.whitelist", "db");
+//        props.setProperty("table.whitelist", "products,users");
+
+        props.setProperty("database.history", "io.debezium.relational.history.FileDatabaseHistory");
+        props.setProperty("database.history.file.filename", "D:\\LocalWork\\temp\\databasehistory.bat");
+        props.setProperty("database.history.store.only.monitored.tables.ddl", "true");
 //        props.setProperty("snapshot.mode", "schema_only_recovery");
-//        props.setProperty("table.whitelist", "product,orders");
 
         return props;
     }

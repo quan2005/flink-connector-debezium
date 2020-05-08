@@ -25,6 +25,7 @@ import java.util.Properties;
 public class DebeziumSource extends RichSourceFunction<ChangeRecord>
         implements CheckpointedFunction {
 
+    private String namespace;
     private DebeziumEngine<SourceRecord> engine;
 
     private final Properties properties;
@@ -32,9 +33,7 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
     protected transient volatile ListState<DebeziumOffset> offsetState;
     protected volatile DebeziumOffset offset = new DebeziumOffset();
 
-    private ObjectMapper mapper = new ObjectMapper();
-
-    private String namespace;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public DebeziumSource(Properties properties) {
         namespace = properties.getProperty("name");
@@ -92,13 +91,12 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
         this.engine.run();
 
     }
-
     private void recoveryModelAdapter() {
         if (offset.isEmpty()) {
             return;
         }
-        this.properties.put(FlinkOffsetBackingStore.OFFSET_KEY_NAME, offset.getKey());
-        this.properties.put(FlinkOffsetBackingStore.OFFSET_VALUE_NAME, offset.getValue());
+        this.properties.put(FlinkOffsetBackingStore.FLINK_DEBEZIUM_OFFSET_KEY, new String(offset.getKey()));
+        this.properties.put(FlinkOffsetBackingStore.FLINK_DEBEZIUM_OFFSET_VALUE, new String(offset.getValue()));
         this.properties.put("snapshot.mode", "schema_only_recovery");
     }
 
@@ -128,8 +126,7 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
         Properties merge = new Properties();
         merge.putAll(properties);
         merge.putIfAbsent("offset.flush.interval.ms", "1000");
-        merge.putIfAbsent("offset.storage", "com.ppfun.flink.connector.debezium.FlinkOffsetBackingStore");
-        merge.putIfAbsent("database.history", "com.ppfun.flink.connector.debezium.FlinkDatabaseHistory");
+        merge.putIfAbsent("offset.storage", FlinkOffsetBackingStore.class.getName());
         merge.putIfAbsent("include.schema.changes", false);
         merge.putIfAbsent("timezone.transfer.enabled", true);
         merge.putIfAbsent("snapshot.mode", "schema_only");

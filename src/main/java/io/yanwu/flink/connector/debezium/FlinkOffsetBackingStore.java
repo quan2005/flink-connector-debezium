@@ -12,29 +12,27 @@ import java.nio.ByteBuffer;
 @Slf4j
 public class FlinkOffsetBackingStore extends MemoryOffsetBackingStore {
 
-    public static final String OFFSET_KEY_NAME = "flink.debezium.offsetKey";
-    public static final String OFFSET_VALUE_NAME = "flink.debezium.offsetValue";
-    private WorkerConfig config;
+    public static final String FLINK_DEBEZIUM_OFFSET_KEY = "flink.debezium.offset.key";
+    public static final String FLINK_DEBEZIUM_OFFSET_VALUE = "flink.debezium.offset.value";
 
     @Override
     public void configure(WorkerConfig config) {
-        this.config = config;
         super.configure(config);
+        if (!config.originals().containsKey(FLINK_DEBEZIUM_OFFSET_KEY) || !config.originals().containsKey(FLINK_DEBEZIUM_OFFSET_VALUE)) {
+            return;
+        }
+        data.put(ByteBuffer.wrap(config.originals().get(FLINK_DEBEZIUM_OFFSET_KEY).toString().getBytes()),
+                ByteBuffer.wrap(config.originals().get(FLINK_DEBEZIUM_OFFSET_VALUE).toString().getBytes()));
     }
 
     @Override
     public synchronized void start() {
         super.start();
-        if (!config.originals().containsKey(OFFSET_KEY_NAME) || !config.originals().containsKey(OFFSET_VALUE_NAME)) {
-            return;
-        }
-        data.put(ByteBuffer.wrap(config.originals().get(OFFSET_KEY_NAME).toString().getBytes()),
-                ByteBuffer.wrap(config.originals().get(OFFSET_VALUE_NAME).toString().getBytes()));
     }
 
     @Override
     protected void save() {
-        // to nothing
+        // do nothing
     }
 
 }
