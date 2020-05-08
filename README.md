@@ -6,8 +6,6 @@
 
 ## Getting Started
 
-Start by not writing any code.
-
 ```
 mvn clean package -DskipTests
 ```
@@ -15,6 +13,3 @@ mvn clean package -DskipTests
 example
 
 参考DebeziumSourceITCase
-```
-docker run -d -p 3306:3306 --name mysql mysql:5 
-```
