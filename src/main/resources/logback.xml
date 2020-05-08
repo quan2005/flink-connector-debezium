@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <jmxConfigurator/>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%highlight([%date{ISO8601}] [%level] %logger{30} [%thread] [%X{TRACE_ID}] - %msg%n)</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.kafka.clients" level="info" />
+
+    <!-- root -->
+    <root level="INFO">
+        <appender-ref ref="console"/>
+    </root>
+</configuration>

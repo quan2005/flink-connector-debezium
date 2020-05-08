@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.yanwu</groupId>
+    <artifactId>flink-connector-debezium</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <properties>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+
+        <flink.version>1.10.0</flink.version>
+        <scala.binary.version>2.12</scala.binary.version>
+        <debezium.version>1.1.0.Final</debezium.version>
+
+        <lombok.version>1.18.12</lombok.version>
+        <!-- 日志库 -->
+        <slf4j-api.version>1.7.25</slf4j-api.version>
+        <logback.version>1.2.3</logback.version>
+
+        <!-- test -->
+        <junit.version>4.8.2</junit.version>
+
+        <maven-shade-plugin.version>3.2.1</maven-shade-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Table ecosystem -->
+        <!-- Projects depending on this project won't depend on flink-table-*. -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-api-java-bridge_${scala.binary.version}</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-api</artifactId>
+            <version>${debezium.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-embedded</artifactId>
+            <version>${debezium.version}</version>
+        </dependency>
+        <dependency>
+            <artifactId>slf4j-api</artifactId>
+            <groupId>org.slf4j</groupId>
+            <version>${slf4j-api.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-connector-mysql</artifactId>
+            <version>${debezium.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Java Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+            <!-- 看情况修改：使用maven-shade-plugin打包fat-jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration combine.self="override">
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+
+                            <relocations>
+                                <!--
+                                    看情况修改：推荐！使用relocation来解决容易冲突的第三方依赖，可以增加多个relocation；
+
+                                    下面以org.apache.commons:commons-text:1.7包为例，示例配置将org.apache.commons.text
+                                    包下的类保持层级关系打包到fat-jar的com.ppmoney.ppmon.org.apache.commons.text包下；
+
+                                    在源码中还是正常引用org.apache.commons.text.lookup.StringLookup，但在fat-jar中它被打包为
+                                    com.ppmoney.ppmon.org.apache.commons.text.lookup.StringLookup，开发者无需改动源码；
+
+                                    注意：使用反射技术的类不要使用relocation，因为全限定类名的变化可能导致无法按字符串找到类；
+                                -->
+                                <!--<relocation>-->
+                                <!--    <pattern>org.apache.commons.text</pattern>-->
+                                <!--    <shadedPattern>com.ppmoney.ppmon.org.apache.commons.text</shadedPattern>-->
+                                <!--</relocation>-->
+                            </relocations>
+
+                            <transformers>
+                                <!-- 不需要修改：自动合并META-INF/services/包下的文件，解决SPI文件的冲突 -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+
+                                <!-- 看情况修改：来合并特定的资源文件，示例配置将spring的命名空间解析配置文件合并到一起 -->
+                                <!--<transformer-->
+                                <!--        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">-->
+                                <!--    <resource>META-INF/spring.handlers</resource>-->
+                                <!--</transformer>-->
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
