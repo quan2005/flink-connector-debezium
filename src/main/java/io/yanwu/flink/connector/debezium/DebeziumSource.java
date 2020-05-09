@@ -3,6 +3,7 @@ package io.yanwu.flink.connector.debezium;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.debezium.embedded.EmbeddedEngine;
 import io.debezium.engine.DebeziumEngine;
+import io.debezium.relational.history.HistoryRecord;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.state.ListState;
@@ -31,6 +32,7 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
     private final Properties properties;
 
     protected transient volatile ListState<DebeziumOffset> offsetState;
+    protected transient volatile ListState<HistoryRecord> historyState;
     protected volatile DebeziumOffset offset = new DebeziumOffset();
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -47,6 +49,9 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
         }
         offsetState.clear();
         offsetState.add(offset);
+
+        historyState.clear();
+        historyState.addAll(FlinkDatabaseHistory.historyRecords);
     }
 
     @Override
@@ -57,12 +62,19 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
                 "flink-connector-debezium-offset",
                 TypeInformation.of(DebeziumOffset.class)));
 
+        this.historyState = store.getUnionListState(new ListStateDescriptor<>(
+                "flink-connector-debezium-history",
+                TypeInformation.of(HistoryRecord.class)));
+
         if (!context.isRestored()) {
             return;
         }
 
         this.offsetState.get().forEach(o ->
                 offset.update(o.getKey(), o.getValue())
+        );
+        this.historyState.get().forEach(o ->
+                FlinkDatabaseHistory.historyRecords.add(o)
         );
 
         log.warn("restored from {}", offset);
@@ -91,6 +103,7 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
         this.engine.run();
 
     }
+
     private void recoveryModelAdapter() {
         if (offset.isEmpty()) {
             return;
@@ -125,11 +138,9 @@ public class DebeziumSource extends RichSourceFunction<ChangeRecord>
     private Properties mergeDefaultProperties(Properties properties) {
         Properties merge = new Properties();
         merge.putAll(properties);
-        merge.putIfAbsent("offset.flush.interval.ms", "1000");
         merge.putIfAbsent("offset.storage", FlinkOffsetBackingStore.class.getName());
         merge.putIfAbsent("include.schema.changes", false);
         merge.putIfAbsent("timezone.transfer.enabled", true);
-        merge.putIfAbsent("snapshot.mode", "schema_only");
         merge.putIfAbsent("snapshot.locking.mode", "none");
         return merge;
     }

@@ -20,7 +20,7 @@ public class DebeziumSourceITCase {
         stream.filter(o -> o.getSource().get("table").equals("products")).print();
 
         StreamGraph streamGraph = env.getStreamGraph();
-//        streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath("file:///D:\\LocalWork\\temp\\savepoint-740afd-cd11dfc55900"));
+//        streamGraph.setSavepointRestoreSettings(SavepointRestoreSettings.forPath("file:///D:\\LocalWork\\temp\\savepoint-ef1406-7d7dad06fc24"));
 //        env.execute(streamGraph);
         JobClient jobClient = env.executeAsync(streamGraph);
         System.out.println(jobClient.getJobID());
@@ -54,8 +54,9 @@ public class DebeziumSourceITCase {
         props.setProperty("database.whitelist", "db");
 //        props.setProperty("table.whitelist", "products,users");
 
-        props.setProperty("database.history", "io.debezium.relational.history.FileDatabaseHistory");
-        props.setProperty("database.history.file.filename", "D:\\LocalWork\\temp\\databasehistory.bat");
+        props.setProperty("database.history", FlinkDatabaseHistory.class.getName());
+//        props.setProperty("database.history", "io.debezium.relational.history.FileDatabaseHistory");
+//        props.setProperty("database.history.file.filename", "D:\\LocalWork\\temp\\databasehistory.bat");
         props.setProperty("database.history.store.only.monitored.tables.ddl", "true");
 //        props.setProperty("snapshot.mode", "schema_only_recovery");
 
